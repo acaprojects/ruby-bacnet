@@ -21,8 +21,9 @@ class BACnet
 
         def objects(data)
             objs = []
+            srv  = service
             while data.length > 1 && data[0] != "\x0"
-                obj = Obj.read(data).details(service)
+                obj = Obj.read(data).details(srv)
                 objs << obj
                 data = data[obj.do_num_bytes..-1]
             end
