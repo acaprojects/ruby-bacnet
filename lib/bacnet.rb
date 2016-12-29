@@ -7,7 +7,21 @@ require 'bacnet/services'
 require 'bacnet/npdu'
 
 class BACnet
-    Datagram = Struct.new(:header, :request, :objects)
+    Datagram = Struct.new(:header, :request, :objects) do
+        def to_binary_s
+            data = String.new(header.to_binary_s)
+            data << request.to_binary_s
+
+            if objects.empty?
+                data << "\x00="
+            else
+                objects.each { |obj| data << obj.to_binary_s }
+            end
+
+            data
+        end
+    end
+
 
     def initialize(callback = nil, **options, &blk)
         @buffer = String.new
@@ -58,6 +72,7 @@ class BACnet
         end
 
         raise error if error
+        nil
     end
 end
 
