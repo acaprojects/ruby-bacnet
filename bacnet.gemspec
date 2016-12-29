@@ -1,15 +1,15 @@
 # frozen_string_literal: true, encoding: ASCII-8BIT
 
 Gem::Specification.new do |s|
-    s.name        = "knx"
-    s.version     = '1.0.1'
+    s.name        = "bacnet"
+    s.version     = '0.0.1'
     s.authors     = ["Stephen von Takach"]
-    s.email       = ["steve@cotag.me"]
+    s.email       = ["steve@aca.im"]
     s.licenses    = ["MIT"]
-    s.homepage    = "https://github.com/acaprojects/ruby-knx"
-    s.summary     = "KNX protocol on Ruby"
+    s.homepage    = "https://github.com/acaprojects/ruby-bacnet"
+    s.summary     = "BACnet protocol on Ruby"
     s.description = <<-EOF
-        Constructs KNX standard datagrams that make it easy to communicate with devices on KNX networks
+        Constructs BACnet standard datagrams that make it easy to communicate with devices on BACnet/IP networks
     EOF
 
 
@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
     s.add_development_dependency 'rake',  '~> 11'
 
 
-    s.files = Dir["{lib}/**/*"] + %w(knx.gemspec README.md)
+    s.files = Dir["{lib}/**/*"] + %w(bacnet.gemspec README.md)
     s.test_files = Dir["spec/**/*"]
     s.extra_rdoc_files = ["README.md"]
 
