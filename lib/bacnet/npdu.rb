@@ -34,9 +34,14 @@ class BACnet
 
         # Technically the start of the APDU
         MessageTypes = {
-            0 => ConfirmedReq,
-            1 => UnconfirmedReq,
-            2 => SimpleACK
+            0 => ConfirmedRequest,
+            1 => UnconfirmedRequest,
+            2 => SimpleACK,
+            3 => ComplexACK,
+            4 => SegmentACK,
+            5 => Error,
+            6 => Reject,
+            7 => Abort
         }
         bit4   :message_type
         bit4   :flags

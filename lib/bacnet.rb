@@ -10,7 +10,7 @@ class BACnet
     Datagram = Struct.new(:header, :request, :objects) do
         def to_binary_s
             data = String.new(header.to_binary_s)
-            data << request.to_binary_s
+            data << request.to_binary_s[1..-1] # ignore the overlapping byte
 
             if objects.empty?
                 data << "\x00="
@@ -46,8 +46,13 @@ class BACnet
             request = nil
 
             if handler
-                request = handler.read(message[npdu.do_num_bytes..-1])
-                objects = request.objects(message[(npdu.do_num_bytes + request.do_num_bytes)..-1])
+                # We overlapped the NPDU and APDU by 1 byte
+                # as message type and flags are in the same byte
+                start_byte = npdu.do_num_bytes - 1
+                request = handler.read(message[start_byte..-1])
+
+                start_byte = npdu.do_num_bytes + request.do_num_bytes - 1
+                objects = request.objects(message[start_byte..-1])
             else
                 puts "unknown request type #{npdu.message_type}"
             end
@@ -78,7 +83,7 @@ end
 
 =begin
 
-    BACnet - iso 16484-5 | ANSI / ASHRAE 135-2010
+    BACnet - iso 16484-5 | ANSI / ASHRAE 135-2016
     - objects (values, inputs and outputs)
       - properties (parts of an object with actual values)
     - services (request + response Protocol Data Units or PDU)
