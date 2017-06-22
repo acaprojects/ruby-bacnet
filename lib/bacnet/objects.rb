@@ -34,13 +34,13 @@ class BACnet
         }
 
         MessageTypes = {
-            0 => Null,
-            1 => Boolean,
-            2 => UnsignedInt,
-            3 => SignedInt,
-            4 => Real,
-            5 => Double,
-            6 => OctetString, # OctetString
+            0  => Null,
+            1  => Boolean,
+            2  => UnsignedInt,
+            3  => SignedInt,
+            4  => Real,
+            5  => Double,
+            6  => OctetString, # OctetString
             7  => CharString,
             8  => BitString,
             9  => UnsignedInt, # Enum response

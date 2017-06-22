@@ -9,8 +9,7 @@ require 'bacnet/npdu'
 class BACnet
     Datagram = Struct.new(:header, :request, :objects) do
         def to_binary_s
-            data = String.new(header.to_binary_s)
-            data << request.to_binary_s[1..-1] # ignore the overlapping byte
+            data = String.new(request.to_binary_s)
 
             if objects.empty?
                 data << "\x00="
@@ -18,8 +17,27 @@ class BACnet
                 objects.each { |obj| data << obj.to_binary_s }
             end
 
-            data
+            length = data.bytesize + header.do_num_bytes - 1
+            header.request_length = length.to_i
+
+            # ignore the overlapping byte
+            "#{header.to_binary_s[0..-2]}#{data}"
         end
+    end
+
+
+    def self.new_datagram(message, *objects)
+        data = Datagram.new
+
+        npdu = NPDU.new
+        npdu.protocol = 0x81
+        npdu.request_type = 0x0A
+        npdu.version = 0x01
+
+        data.header = npdu
+        data.request = message
+        data.objects = objects
+        data
     end
 
 

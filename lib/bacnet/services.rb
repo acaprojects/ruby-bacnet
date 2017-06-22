@@ -45,7 +45,7 @@ class BACnet
         }
         ServiceIds.merge!(ServiceIds.invert)
 
-        bit4   :message_type
+        bit4   :message_type, value: 1
         bit4   :flags
         uint8  :service_id
     end
@@ -89,7 +89,7 @@ class BACnet
     class ConfirmedRequest < ConfirmedCommon
         endian :big
 
-        bit4   :message_type
+        bit4   :message_type, value: 0
 
         # Flags
         bit1   :segmented_message
@@ -114,7 +114,7 @@ class BACnet
     class SimpleACK < ConfirmedCommon
         endian :big
 
-        bit4   :message_type
+        bit4   :message_type, value: 2
         bit4   :flags
         uint8  :invoke_id
         uint8  :service_id
@@ -123,7 +123,7 @@ class BACnet
     class ComplexACK < ConfirmedCommon
         endian :big
 
-        bit4   :message_type
+        bit4   :message_type, value: 3
 
         # Flags
         bit1   :segmented_message
@@ -139,6 +139,17 @@ class BACnet
         end
 
         uint8  :service_id
+
+        def segment(ack: true, from_server: false)
+            sack = SegmentACK.new
+            sack.negative_ack    = ack ? 0 : 1
+            sack.from_server     = from_server ? 1 : 0
+            sack.invoke_id       = invoke_id
+            sack.sequence_number = segment.sequence_number
+            sack.window_size     = segment.window_size
+
+            BACnet.new_datagram(sack)
+        end
 
 =begin
         These are the complex ACK responses
@@ -160,7 +171,7 @@ class BACnet
     class SegmentACK < ConfirmedCommon
         endian :big
 
-        bit4   :message_type
+        bit4   :message_type, value: 4
 
         # Flags
         bit2   :flags
@@ -168,10 +179,8 @@ class BACnet
         bit1   :from_server
 
         uint8  :invoke_id
-        struct :segment, onlyif: -> { segmented_message.nonzero? } do
-            uint8  :sequence_number
-            uint8  :window_size
-        end
+        uint8  :sequence_number
+        uint8  :window_size
     end
 
     class Error < Request
@@ -333,7 +342,7 @@ class BACnet
         }
         ErrorCode.merge!(ErrorCode.invert)
 
-        bit4   :message_type
+        bit4   :message_type, value: 5
         bit4   :flags
 
         uint8  :invoke_id
@@ -374,7 +383,7 @@ class BACnet
         }
         ServiceIds.merge!(ServiceIds.invert)
 
-        bit4   :message_type
+        bit4   :message_type, value: 6
         bit4   :flags
 
         uint8  :invoke_id
@@ -402,7 +411,7 @@ class BACnet
         }
         ServiceIds.merge!(ServiceIds.invert)
 
-        bit4   :message_type
+        bit4   :message_type, value: 7
         bit3   :flags
         bit1   :from_server
 
