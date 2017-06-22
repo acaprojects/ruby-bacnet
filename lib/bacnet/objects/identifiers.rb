@@ -543,7 +543,7 @@ class ::BACnet::PropertyIdentifier < ::BinData::Record
     PropertyType.merge!(PropertyType.invert)
 
     def type
-        PropertyType[object_type] || :unknown
+        PropertyType[property_type] || :unknown
     end
 
     def value; self; end
