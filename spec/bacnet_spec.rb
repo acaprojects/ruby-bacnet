@@ -81,6 +81,19 @@ describe "bacnet protocol helper" do
         expect(dgram.objects[1].get_value).to eq("filister")
     end
 
+    it "should parse a complex ack message" do
+        @bacnet.read("\x81\x0a\x00\x26\x01\x08\x00\x0d\x01\x3d\x30\x01\x0c\x0c\x00\x40\x00\x65\x19\x57\x3e\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x3f")
+        expect(@dgrams.length).to be(1)
+        dgram = @dgrams[0]
+
+        expect(dgram.objects[0].get_value.class).to be(::BACnet::ObjectIdentifier)
+        expect(dgram.objects[1].get_value.class).to be(::BACnet::PropertyIdentifier)
+        expect(dgram.objects[2].get_value).to be(:opening_tag)
+        expect(dgram.objects[3].get_value).to be(nil)
+
+        expect(dgram.objects.length).to be(20)
+    end
+
     it "should output valid datagrams" do
         @bacnet.read("\x81\xa\x0\x16\x1\x20\xff\xff\x0\xff\x10\x7\x3d\x8\x00SYNERGY")
         expect(@dgrams[0].to_binary_s).to eq("\x81\xa\x0\x16\x1\x20\xff\xff\x0\xff\x10\x7\x3d\x8\x00SYNERGY")
@@ -90,5 +103,9 @@ describe "bacnet protocol helper" do
 
         @bacnet.read("\x81\xa\x0\xb\x10\x7\x2c\x2\x0\x0\x3d")
         expect(@dgrams[2].to_binary_s).to eq("\x81\xa\x0\xb\x10\x7\x2c\x2\x0\x0\x3d")
+
+        complex_ack = "\x81\x0a\x00\x26\x01\x08\x00\x0d\x01\x3d\x30\x01\x0c\x0c\x00\x40\x00\x65\x19\x57\x3e\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x3f"
+        @bacnet.read(complex_ack)
+        expect(@dgrams[3].to_binary_s).to eq(complex_ack)
     end
 end

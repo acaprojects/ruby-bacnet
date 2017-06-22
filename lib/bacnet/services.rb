@@ -13,7 +13,7 @@ class BACnet
         def objects(data)
             objs = []
             srv  = service
-            while data.length > 1 && data[0] != "\x0"
+            while data.length > 0 && data != "\x00="
                 obj = Obj.read(data)
                 obj.context = srv
                 objs << obj
@@ -141,7 +141,7 @@ class BACnet
         uint8  :service_id
 
 =begin
-        TODO:: These are the complex ACK responses
+        These are the complex ACK responses
             get_alarm_summary: 3,
             get_enrollment_summary: 4,
             atomic_read_file: 6,
