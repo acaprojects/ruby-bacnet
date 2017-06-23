@@ -26,7 +26,6 @@ class BACnet
 
             # Ensure other fields are set
             header.protocol = 0x81 if header.protocol == 0
-            header.request_type = 0x0A if header.request_type == 0
             header.version = 0x01 if header.version == 0
 
             # ignore the overlapping byte
@@ -56,31 +55,31 @@ class BACnet
     end
 
 
-    def self.new_datagram(message, *objects)
-        data = Datagram.new
-        npdu = NPDU.new
-        data.header = npdu
-        data.request = message
-        data.objects = objects
-        data
-    end
-
-    def self.confirmed_req( destination:, service:, destination_mac: '', source: 0,
+    def self.new_datagram(message, destination: 0, destination_mac: '', source: 0,
                             source_mac: '', is_group_address: 0, priority: 0,
-                            hop_count: 0xFF, invoke_id: 1, objects: [])
+                            hop_count: 0xFF, objects: [], request_type: :original_unicast_npdu)
         data = Datagram.new
-
         npdu = NPDU.new
-        npdu.expecting_reply = 1
+        npdu.request_type = request_type
         npdu.priority = priority
         npdu.hop_count = hop_count
         npdu.is_group_address = is_group_address
-
         npdu.destination.address = destination
         npdu.destination_mac = destination_mac
         npdu.source.address = source
         npdu.source_mac = source_mac
 
+        data.header = npdu
+        data.request = message
+        data.objects = Array(objects)
+        data
+    end
+
+    def self.confirmed_req( destination:, service:, destination_mac: '', source: 0,
+                            source_mac: '', is_group_address: 0, priority: 0,
+                            hop_count: 0xFF, invoke_id: 1, objects: [],
+                            request_type: :original_unicast_npdu)
+        
         cr = ConfirmedRequest.new
         cr.segmented_message = 0
         cr.more_follows = 0
@@ -90,34 +89,28 @@ class BACnet
         cr.invoke_id = invoke_id
         cr.service_id = ConfirmedRequest::ServiceIds[service.to_sym]
 
-        data.header = npdu
-        data.request = cr
-        data.objects = Array(objects)
+        data = new_datagram(cr,
+                destination: destination, destination_mac: destination_mac, source: source,
+                source_mac: source_mac, is_group_address: is_group_address, priority: priority,
+                hop_count: hop_count, objects: objects, request_type: request_type)
+
+        data.header.expecting_reply = 1
         data
     end
 
     def self.unconfirmed_req(destination:, service:, destination_mac: '', source: 0,
                             source_mac: '', is_group_address: 0, priority: 0,
-                            hop_count: 0xFF, objects: [])
-        data = Datagram.new
+                            hop_count: 0xFF, objects: [], request_type: :original_unicast_npdu)
 
-        npdu = NPDU.new
-        npdu.priority = priority
-        npdu.hop_count = hop_count
-        npdu.is_group_address = is_group_address
+        # TODO:: simplify creating broadcast requests
 
-        npdu.destination.address = destination
-        npdu.destination_mac = destination_mac
-        npdu.source.address = source
-        npdu.source_mac = source_mac
+        ucr = UnconfirmedRequest.new
+        ucr.service_id = UnconfirmedRequest::ServiceIds[service.to_sym]
 
-        cr = UnconfirmedRequest.new
-        cr.service_id = UnconfirmedRequest::ServiceIds[service.to_sym]
-
-        data.header = npdu
-        data.request = cr
-        data.objects = Array(objects)
-        data
+        new_datagram(ucr,
+                destination: destination, destination_mac: destination_mac, source: source,
+                source_mac: source_mac, is_group_address: is_group_address, priority: priority,
+                hop_count: hop_count, objects: objects, request_type: request_type)
     end
 
     def self.build_array(*objects)

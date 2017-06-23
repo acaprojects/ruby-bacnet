@@ -6,7 +6,7 @@ class BACnet
         endian :big
 
         uint8  :protocol
-        uint8  :request_type
+        uint8  :request_code
         uint16 :request_length
         uint8  :version
 
@@ -68,6 +68,30 @@ class BACnet
         def source_mac=(address)
             assign_mac(source, address)
             self.source_specifier = 1 if source.mac_address.length > 0
+        end
+
+        RequestTypes = {
+            bvlc_result: 0,
+            write_broadcast_distribution_table: 1,
+            read_broadcast_distribution_table: 2,
+            read_broadcast_distribution_table_ack: 3,
+            forwarded_npdu: 4,
+            register_foreign_device: 5,
+            read_foreign_device_table: 6,
+            read_foreign_device_table_ack: 7,
+            delete_foreign_device_table_entry: 8,
+            distribute_broadcast_to_network: 9,
+            original_unicast_npdu: 0x0a,
+            original_broadcast_npdu: 0x0b
+        }
+        RequestTypes.merge!(RequestTypes.invert)
+
+        def request_type
+            RequestTypes[request_code]
+        end
+
+        def request_type=(name)
+            self.request_code = RequestTypes[name.to_sym]
         end
 
 
