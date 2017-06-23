@@ -195,7 +195,9 @@ describe "bacnet protocol helper" do
     end
 
     it "should build a confirmed request" do
-        dgram = BACnet.confirmed_req(destination: 23, service: :read_property, destination_mac: "\x06")
+        dgram = BACnet.confirmed_req(destination: 23, service: :read_property, destination_mac: 6)
+
+        expect(dgram.header.destination_mac).to be(6)
 
         obj1 = ::BACnet::ObjectIdentifier.new
         obj1.type = :binary_value

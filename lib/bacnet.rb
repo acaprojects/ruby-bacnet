@@ -77,9 +77,9 @@ class BACnet
         npdu.is_group_address = is_group_address
 
         npdu.destination.address = destination
-        npdu.destination.mac_address = destination_mac
+        npdu.destination_mac = destination_mac
         npdu.source.address = source
-        npdu.source.mac_address = source_mac
+        npdu.source_mac = source_mac
 
         cr = ConfirmedRequest.new
         cr.segmented_message = 0
@@ -98,7 +98,7 @@ class BACnet
 
     def self.unconfirmed_req(destination:, service:, destination_mac: '', source: 0,
                             source_mac: '', is_group_address: 0, priority: 0,
-                            hop_count: 0xFF, invoke_id: 1, objects: [])
+                            hop_count: 0xFF, objects: [])
         data = Datagram.new
 
         npdu = NPDU.new
@@ -107,9 +107,9 @@ class BACnet
         npdu.is_group_address = is_group_address
 
         npdu.destination.address = destination
-        npdu.destination.mac_address = destination_mac
+        npdu.destination_mac = destination_mac
         npdu.source.address = source
-        npdu.source.mac_address = source_mac
+        npdu.source_mac = source_mac
 
         cr = UnconfirmedRequest.new
         cr.service_id = UnconfirmedRequest::ServiceIds[service.to_sym]
