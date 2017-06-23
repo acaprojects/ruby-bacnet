@@ -7,39 +7,140 @@ require 'bacnet/services'
 require 'bacnet/npdu'
 
 class BACnet
-    Datagram = Struct.new(:header, :request, :objects) do
+    Datagram = Struct.new(:header, :request, :objects, :junk) do
         def to_binary_s
             data = String.new(request.to_binary_s)
+            objects.each { |obj| data << obj.to_binary_s }
 
-            if objects.empty?
-                data << "\x00="
-            else
-                objects.each { |obj| data << obj.to_binary_s }
-            end
+            # This is data we were unable to parse
+            # might be required?
+            data << junk if junk
 
+            # We don't want to force these at all times
+            header.destination_specifier = 1 if header.destination.address > 0
+            header.source_specifier = 1      if header.source.address > 0
+
+            # Force length
             length = data.bytesize + header.do_num_bytes - 1
             header.request_length = length.to_i
 
+            # Ensure other fields are set
+            header.protocol = 0x81 if header.protocol == 0
+            header.request_type = 0x0A if header.request_type == 0
+            header.version = 0x01 if header.version == 0
+
             # ignore the overlapping byte
             "#{header.to_binary_s[0..-2]}#{data}"
+        end
+
+        def add(obj, tag: nil)
+            self.objects ||= []
+            wrapper = Obj.new
+            wrapper.data = obj.to_binary_s
+
+            if tag
+                wrapper.context_specific = 1
+
+                if tag >= 0x0F
+                    wrapper.tag = 0x0F
+                    wrapper.ext_tag = tag
+                else
+                    wrapper.tag = tag
+                end
+            else
+                wrapper.tag = Obj::MessageTypes[obj.class]
+            end
+            self.objects << wrapper
+            self.objects.length
         end
     end
 
 
     def self.new_datagram(message, *objects)
         data = Datagram.new
-
         npdu = NPDU.new
-        npdu.protocol = 0x81
-        npdu.request_type = 0x0A
-        npdu.version = 0x01
-
         data.header = npdu
         data.request = message
         data.objects = objects
         data
     end
 
+    def self.confirmed_req( destination:, service:, destination_mac: '', source: 0,
+                            source_mac: '', is_group_address: 0, priority: 0,
+                            hop_count: 0xFF, invoke_id: 1, objects: [])
+        data = Datagram.new
+
+        npdu = NPDU.new
+        npdu.expecting_reply = 1
+        npdu.priority = priority
+        npdu.hop_count = hop_count
+        npdu.is_group_address = is_group_address
+
+        npdu.destination.address = destination
+        npdu.destination.mac_address = destination_mac
+        npdu.source.address = source
+        npdu.source.mac_address = source_mac
+
+        cr = ConfirmedRequest.new
+        cr.segmented_message = 0
+        cr.more_follows = 0
+        cr.segmented_response_accepted = 1
+        cr.max_response_segments = 0
+        cr.max_size = 5 # max response size: 1476 bytes
+        cr.invoke_id = invoke_id
+        cr.service_id = ConfirmedRequest::ServiceIds[service.to_sym]
+
+        data.header = npdu
+        data.request = cr
+        data.objects = Array(objects)
+        data
+    end
+
+    def self.unconfirmed_req(destination:, service:, destination_mac: '', source: 0,
+                            source_mac: '', is_group_address: 0, priority: 0,
+                            hop_count: 0xFF, invoke_id: 1, objects: [])
+        data = Datagram.new
+
+        npdu = NPDU.new
+        npdu.priority = priority
+        npdu.hop_count = hop_count
+        npdu.is_group_address = is_group_address
+
+        npdu.destination.address = destination
+        npdu.destination.mac_address = destination_mac
+        npdu.source.address = source
+        npdu.source.mac_address = source_mac
+
+        cr = UnconfirmedRequest.new
+        cr.service_id = UnconfirmedRequest::ServiceIds[service.to_sym]
+
+        data.header = npdu
+        data.request = cr
+        data.objects = Array(objects)
+        data
+    end
+
+    def self.build_array(*objects)
+        current = []
+        arrays = [current]
+        prev = nil
+        objects.each do |obj|
+            val = obj.get_value(prev)
+            if val == :opening_tag
+                arr = []
+                current << arr
+                current = arr
+                arrays << current
+            elsif val == :closing_tag
+                current = arrays.pop unless arrays.length < 2
+            else
+                current << val
+            end
+            prev = val
+        end
+
+        arrays[0]
+    end
 
     def initialize(callback = nil, **options, &blk)
         @buffer = String.new
@@ -70,12 +171,12 @@ class BACnet
                 request = handler.read(message[start_byte..-1])
 
                 start_byte = npdu.do_num_bytes + request.do_num_bytes - 1
-                objects = request.objects(message[start_byte..-1])
+                objects, data = request.objects(message[start_byte..-1])
             else
                 puts "unknown request type #{npdu.message_type}"
             end
 
-            dgram = Datagram.new(npdu, request, objects)
+            dgram = Datagram.new(npdu, request, objects, data)
             begin
                 @callback.call(dgram)
             rescue => e

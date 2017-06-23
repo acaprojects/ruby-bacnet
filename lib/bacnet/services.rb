@@ -12,17 +12,18 @@ class BACnet
 
         def objects(data)
             objs = []
-            srv  = service
-            while data.length > 0 && data != "\x00="
-                obj = Obj.read(data)
-                obj.context = srv
-                objs << obj
-                data = data[obj.do_num_bytes..-1]
+            begin
+                srv = service
+                while data.length > 0
+                    obj = Obj.read(data)
+                    obj.context = srv
+                    objs << obj
+                    data = data[obj.do_num_bytes..-1]
+                end
+            rescue => e
+                puts "unable to parse some data as #{e.message}"
             end
-            objs
-        rescue => e
-            puts "#{e.message}\n#{e.backtrace.join("\n")}"
-            objs
+            [objs, data]
         end
     end
 
@@ -98,8 +99,8 @@ class BACnet
         bit1   :ignore1
 
         bit1   :ignore2
-        bit3   :max_response_segments
-        bit4   :max_size
+        bit3   :max_response_segments  # 0=Int(MAX),1=2,2=4,3=8,4=16,5=32,6=64,7=Int(MAX)
+        bit4   :max_size               # 0=50, 1=128, 2=206, 3=480, 4=1024, 5=1476
 
         uint8  :invoke_id
 
@@ -140,7 +141,7 @@ class BACnet
 
         uint8  :service_id
 
-        def segment(ack: true, from_server: false)
+        def segment_ack(ack = true, from_server: false)
             sack = SegmentACK.new
             sack.negative_ack    = ack ? 0 : 1
             sack.from_server     = from_server ? 1 : 0

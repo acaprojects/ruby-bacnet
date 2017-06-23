@@ -20,13 +20,13 @@ class BACnet
 
         struct :destination, onlyif: -> { destination_specifier.nonzero? } do
             uint16 :address
-            uint8  :mac_address_length
+            uint8  :mac_address_length, value: -> { destination.mac_address.bytesize }
             string :mac_address, onlyif: -> { destination.mac_address_length.nonzero? }, read_length: -> { destination.mac_address_length }
         end
 
         struct :source, onlyif: -> { source_specifier.nonzero? } do
             uint16 :address
-            uint8  :mac_address_length
+            uint8  :mac_address_length, value: -> { source.mac_address.bytesize }
             string :mac_address, onlyif: -> { source.mac_address_length.nonzero? }, read_length: -> { source.mac_address_length }
         end
 
