@@ -74,6 +74,10 @@ class ::BACnet::ObjectIdentifier < ::BinData::Record
         ObjectType[object_type] || :unknown
     end
 
+    def type=(name)
+        self.object_type = ObjectType[name.to_sym]
+    end
+
     def value; self; end
 end
 
@@ -544,6 +548,10 @@ class ::BACnet::PropertyIdentifier < ::BinData::Record
 
     def type
         PropertyType[property_type] || :unknown
+    end
+
+    def type=(name)
+        self.property_type = PropertyType[name.to_sym]
     end
 
     def value; self; end

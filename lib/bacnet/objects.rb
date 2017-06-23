@@ -48,38 +48,50 @@ class BACnet
             11 => Time,
             12 => ObjectIdentifier
         }
+        MessageTypes.merge!(MessageTypes.invert)
 
         attr_accessor :context
 
-        def get_value
-            tag_actual = ext_tag == 0 ? tag : ext_tag
+        def get_value(prev = nil)
+            begin
+                tag_actual = ext_tag == 0 ? tag : ext_tag
 
-            @value ||= if context_specific > 0
-                return value if @named_tag_value
+                @value ||= if context_specific > 0
+                    return value if @named_tag_value
 
-                ctx = Contexts[context]
-                if ctx
-                    klass = ctx[tag_actual]
-                    if klass
-                        klass.read data
+                    ctx = Contexts[context]
+                    if ctx
+                        klass = ctx[tag_actual]
+                        if klass
+                            klass.read data
+                        else
+                            puts "Unknown object type #{tag_actual} in context #{context}"
+                            self
+                        end
                     else
-                        puts "Unknown object type #{tag_actual} in context #{context}"
+                        puts "Unknown object type #{tag_actual} in unknown context #{context}"
                         self
                     end
                 else
-                    puts "Unknown object type #{tag_actual} in unknown context #{context}"
-                    self
+                    klass = MessageTypes[tag_actual]
+                    if klass
+                        klass.read data
+                    else
+                        puts "Unknown object type #{tag_actual}"
+                        self
+                    end
                 end
-            else
-                klass = MessageTypes[tag_actual]
-                if klass
-                    klass.read data
-                else
-                    puts "Unknown object type #{tag_actual}"
-                    self
-                end
+                return @value.value(prev) if @value.method(:value).arity != 0
+                @value.value
+            rescue => e
+                puts "failure parsing object tag #{tag_actual} in context #{context} - context specific? #{context_specific > 0}"
+                self
             end
-            @value.value
+        end
+
+        def raw_value
+            get_value
+            @value
         end
 
         def value
